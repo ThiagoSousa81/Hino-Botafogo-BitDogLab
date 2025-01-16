@@ -9,230 +9,19 @@
 #include "hardware/gpio.h"
 #include "hardware/adc.h"
 
+#include "inc/musica.h"
+
+#include "inc/ssd1306.h"
+#include "inc/bitmap_botafogo.h"    
+#include <string.h>
 // notas musicais
-#define DO 0
-#define REb 1
-#define RE 2
-#define MIb 3
-#define MI 4
-#define FA 5
-#define SOLb 6
-#define SOL 7
-#define LAb 8
-#define LA 9
-#define SIb 10
-#define SI 11
 
-#define do 12
-#define reb 13
-#define re 14
-#define mib 15
-#define mi 16
-#define fa 17
-#define solb 18
-#define sol 19
-#define lab 20
-#define la 21
-#define sib 22
-#define si 23
-
-const float notas[24] = {
-    261.625519,
-    277.182648,
-    293.664734,
-    311.126984,
-    329.627533,
-    349.228241,
-    369.994385,
-    391.995392,
-    415.304688,
-    440,
-    466.163788,
-    493.883301,
-
-    523.251099,
-    554.365234,
-    587.329529,
-    622.253906,
-    659.255127,
-    698.456482,
-    739.988831,
-    783.990845,
-    830.609375,
-    880,
-    932.327576,
-    987.766602};
-
-const char musica[] = {
-    FA, FA, SIb, SIb, do, re, LA, LA,
-    SIb, do, SOL, SOL, FA, SOL, SOL, FA, SOL, FA, LA, SOL,
-
-    FA, FA, LA, LA, SIb, do, SOL, SOL,
-    LA, SIb, FA, FA, do, re, do, SI, do, FA,
-
-    FA, SOL, LA, SIb, do, re, do, SIb, SOL, SIb,
-    SOL, SOL, do, re, mi, re, do, LA, do,
-
-    FA, SIb, do, SIb, SOL, do, do,
-    do, re, do, re, mib,
-    mib, re, do, FA, SIb};
-
-const int tempos_off[] = {
-194314,
-193271,
-212358,
-216686,
-218190,
-250482,
-215839,
-220852,
-219293,
-258888,
-277035,
-167749,
-181921,
-262126,
-190068,
-156896,
-167814,
-155907,
-183453,
-241263,
-182624,
-165687,
-209273,
-208070,
-228435,
-219001,
-220944,
-252194,
-243330,
-255024,
-212375,
-181504,
-149064,
-153086,
-154220,
-169555,
-224882,
-145369,
-187233,
-204307,
-245571,
-246397,
-200709,
-198183,
-155901,
-158117,
-176260,
-221173,
-120782,
-208998,
-230035,
-216509,
-206067,
-156892,
-148523,
-173262,
-249148,
-223286,
-217373,
-162159,
-134691,
-174012,
-197735,
-205494,
-163483,
-127238,
-145798,
-178325,
-245787,
-182936,
-129484,
-155288,
-184928,
-0,
-};
-const int tempos_on[] = {
-100055,
-100005,
-356402,
-294792,
-320747,
-305048,
-355481,
-320853,
-308782,
-309847,
-278868,
-100005,
-100005,
-253820,
-100005,
-100005,
-100005,
-100005,
-100005,
-600791,
-100006,
-100005,
-361438,
-337487,
-334709,
-306064,
-342731,
-311295,
-293245,
-286705,
-642123,
-100005,
-100005,
-100005,
-100004,
-100005,
-353855,
-100004,
-100005,
-344333,
-283075,
-845394,
-308885,
-325317,
-100005,
-100005,
-100004,
-590775,
-100005,
-100005,
-839234,
-308214,
-313848,
-100005,
-100005,
-100005,
-584835,
-317832,
-832255,
-100005,
-100005,
-100004,
-335705,
-300653,
-100005,
-100004,
-100005,
-100005,
-738570,
-104106,
-100005,
-100005,
-100005,
-1373966,
-};
 // Mapeando hardware
 #define BUZZER_PIN 21
 #define BUTTON_A_PIN 6
 
+const uint I2C_SDA = 14;
+const uint I2C_SCL = 15;
 // Configuração da frequência do buzzer (em Hz)
 #define top 65535
 
@@ -328,6 +117,36 @@ int main()
     // Inicializar o sistema de saída padrão
     stdio_init_all();
 
+
+    // Inicialização do i2c
+    i2c_init(i2c1, ssd1306_i2c_clock * 1000);
+    gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
+    gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
+    gpio_pull_up(I2C_SDA);
+    gpio_pull_up(I2C_SCL);
+
+    // Processo de inicialização completo do OLED SSD1306
+    ssd1306_init();
+
+    // Preparar área de renderização para o display (ssd1306_width pixels por ssd1306_n_pages páginas)
+    struct render_area frame_area = {
+        start_column : 0,
+        end_column : ssd1306_width - 1,
+        start_page : 0,
+        end_page : ssd1306_n_pages - 1
+    };
+
+    calculate_render_area_buffer_length(&frame_area);
+
+    // zera o display inteiro
+    uint8_t ssd[ssd1306_buffer_length];
+    memset(ssd, 0, ssd1306_buffer_length);
+    render_on_display(ssd, &frame_area);
+
+
+
+
+
     // Inicializar o PWM no pino do buzzer
     uint slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
     pwm_init_buzzer(BUZZER_PIN, slice_num);
@@ -338,7 +157,15 @@ int main()
     gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_A_PIN);
    
-   
+    
+
+    // desenhando escudo botafogo:
+    ssd1306_t ssd_bm;
+    ssd1306_init_bm(&ssd_bm, 128, 64, false, 0x3C, i2c1);
+    ssd1306_config(&ssd_bm);
+
+    ssd1306_draw_bitmap(&ssd_bm, bitmap_botafogo);
+
     sleep_ms(1000); //pausinha dramática
 
     for (int i = 0; i < 74; i++)

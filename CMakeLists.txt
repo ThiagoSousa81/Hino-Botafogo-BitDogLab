@@ -42,34 +42,35 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(buzzer C CXX ASM)
+project(musica C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(buzzer buzzer.c )
+add_executable(musica main.c inc/ssd1306_i2c.c)
 
-pico_set_program_name(buzzer "buzzer")
-pico_set_program_version(buzzer "0.1")
+pico_set_program_name(musica "musica")
+pico_set_program_version(musica "0.1")
 
 # Modify the below lines to enable/disable output over UART/USB
-pico_enable_stdio_uart(buzzer 0)
-pico_enable_stdio_usb(buzzer 1)
+pico_enable_stdio_uart(musica 0)
+pico_enable_stdio_usb(musica 1)
 
 # Add the standard library to the build
-target_link_libraries(buzzer
+target_link_libraries(musica
         hardware_pwm
         pico_stdlib
         hardware_gpio
         hardware_adc
+        hardware_i2c
         )
 
 # Add the standard include files to the build
-target_include_directories(buzzer PRIVATE
+target_include_directories(musica PRIVATE
   ${CMAKE_CURRENT_LIST_DIR}
 )
 
-pico_add_extra_outputs(buzzer)
+pico_add_extra_outputs(musica)
 
