@@ -77,6 +77,158 @@ const char musica[] = {
     do, re, do, re, mib,
     mib, re, do, FA, SIb};
 
+const int tempos_off[] = {
+194314,
+193271,
+212358,
+216686,
+218190,
+250482,
+215839,
+220852,
+219293,
+258888,
+277035,
+167749,
+181921,
+262126,
+190068,
+156896,
+167814,
+155907,
+183453,
+241263,
+182624,
+165687,
+209273,
+208070,
+228435,
+219001,
+220944,
+252194,
+243330,
+255024,
+212375,
+181504,
+149064,
+153086,
+154220,
+169555,
+224882,
+145369,
+187233,
+204307,
+245571,
+246397,
+200709,
+198183,
+155901,
+158117,
+176260,
+221173,
+120782,
+208998,
+230035,
+216509,
+206067,
+156892,
+148523,
+173262,
+249148,
+223286,
+217373,
+162159,
+134691,
+174012,
+197735,
+205494,
+163483,
+127238,
+145798,
+178325,
+245787,
+182936,
+129484,
+155288,
+184928,
+0,
+};
+const int tempos_on[] = {
+100055,
+100005,
+356402,
+294792,
+320747,
+305048,
+355481,
+320853,
+308782,
+309847,
+278868,
+100005,
+100005,
+253820,
+100005,
+100005,
+100005,
+100005,
+100005,
+600791,
+100006,
+100005,
+361438,
+337487,
+334709,
+306064,
+342731,
+311295,
+293245,
+286705,
+642123,
+100005,
+100005,
+100005,
+100004,
+100005,
+353855,
+100004,
+100005,
+344333,
+283075,
+845394,
+308885,
+325317,
+100005,
+100005,
+100004,
+590775,
+100005,
+100005,
+839234,
+308214,
+313848,
+100005,
+100005,
+100005,
+584835,
+317832,
+832255,
+100005,
+100005,
+100004,
+335705,
+300653,
+100005,
+100004,
+100005,
+100005,
+738570,
+104106,
+100005,
+100005,
+100005,
+1373966,
+};
 // Mapeando hardware
 #define BUZZER_PIN 21
 #define BUTTON_A_PIN 6
@@ -121,6 +273,56 @@ void beep(uint pin, uint duration_ms)
     sleep_ms(100); // Pausa de 100ms
 }
 
+// funcao para gravar os tempos de cada nota (e o espaço entre elas também)
+void gravar(int* tempos_off,int* tempos_on, uint slice_num){
+    uint32_t t1 = 0;
+    uint32_t t0 = 0;
+    for (int count = 0; count < 74; count++)
+    {
+
+        while (gpio_get(BUTTON_A_PIN)) // butao em pull up
+        {
+        }
+
+        t0 = time_us_32();
+        tempos_off[count] = t0 - t1;
+
+        pwm_set_gpio_level(BUZZER_PIN, 500);
+        change_note(musica[count]);
+
+        sleep_ms(100);
+
+        while (!gpio_get(BUTTON_A_PIN))
+        {
+        }
+        t1 = time_us_32();
+
+        tempos_on[count] = t1 - t0;
+        // printf("%d,", time);
+
+        pwm_set_gpio_level(BUZZER_PIN, 0);
+        sleep_ms(100);
+    }
+
+
+    // Printando dados na serial se quiser reutilizar vvvvvvvvv
+    printf("const int tempos_off[] = {\n");
+    for (int i = 0; i < 74; i++)
+    {
+        printf("%d,\n", tempos_off[i + 1]);
+    }
+    printf("}\n");
+
+    printf("const int tempos_on[] = {\n");
+    for (int i = 0; i < 74; i++)
+    {
+        printf("%d,\n", tempos_on[i]);
+    }
+    printf("}\n");
+
+}
+
+
 int main()
 {
     // Inicializar o sistema de saída padrão
@@ -131,67 +333,27 @@ int main()
     pwm_init_buzzer(BUZZER_PIN, slice_num);
 
     // configurando botao
-    /*gpio_init(BUTTON_A_PIN);
-    gpio_set_dir(BUTTON_A_PIN,GPIO_IN);
+    //*
+    gpio_init(BUTTON_A_PIN);
+    gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
     gpio_pull_up(BUTTON_A_PIN);
-    */
-    // CONFIGURAND JOYSTICK
-    adc_init();
-    adc_gpio_init(26);
-    adc_gpio_init(27);
+   
+   
+    sleep_ms(1000); //pausinha dramática
 
-    unsigned long int adc_y_raw = 0;
-    adc_select_input(0);
-    int note = 0;
-
-    while (true)
+    for (int i = 0; i < 74; i++)
     {
-        adc_y_raw = 0;
-
-        while (adc_y_raw < 3000)
-        {
-            for (int i = 0; i < 20; i++)
-            {
-                adc_y_raw += adc_read();
-            }
-            adc_y_raw /= 20;
-            printf("%u\n", adc_y_raw);
-        }
-
         pwm_set_gpio_level(BUZZER_PIN, 500);
-        change_note(musica[note]);
-        note++;
+        change_note(musica[i]);
+        sleep_us(tempos_on[i]);
 
-        while (adc_y_raw > 3000)
-        {
-
-            for (int i = 0; i < 20; i++)
-            {
-                adc_y_raw += adc_read();
-            }
-            adc_y_raw /= 20;
-
-            printf("%u\n", adc_y_raw);
-        }
         pwm_set_gpio_level(BUZZER_PIN, 0);
+        sleep_us(tempos_off[i]);
     }
+    pwm_set_gpio_level(BUZZER_PIN, 0);
 
-    int count = 0;
-    // Loop infinito
+   
     while (true)
-    {
-        while (gpio_get(BUTTON_A_PIN))
-            ;
-        printf("Apertou %d vezes\n", ++count);
-
-        pwm_set_gpio_level(BUZZER_PIN, 500);
-        change_note(musica[count]);
-
-        sleep_ms(500);
-
-        while (!gpio_get(BUTTON_A_PIN))
-            ;
-        pwm_set_gpio_level(BUZZER_PIN, 0);
-    }
+        ;
     return 0;
 }
