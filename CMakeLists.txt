@@ -54,6 +54,11 @@ add_executable(musica main.c inc/ssd1306_i2c.c)
 pico_set_program_name(musica "musica")
 pico_set_program_version(musica "0.1")
 
+
+#generate PIO HEADER
+pico_generate_pio_header(musica ${CMAKE_CURRENT_LIST_DIR}/ws2818b.pio)
+
+
 # Modify the below lines to enable/disable output over UART/USB
 pico_enable_stdio_uart(musica 0)
 pico_enable_stdio_usb(musica 1)
@@ -62,6 +67,9 @@ pico_enable_stdio_usb(musica 1)
 target_link_libraries(musica
         hardware_pwm
         pico_stdlib
+        pico_time
+
+        hardware_pio
         hardware_gpio
         hardware_adc
         hardware_i2c
