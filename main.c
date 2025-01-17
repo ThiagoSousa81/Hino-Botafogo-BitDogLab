@@ -31,8 +31,8 @@ const uint I2C_SCL = 15;
 #define top 65535
 
 //configuracoes
-#define VOLUME_BUZZER
-#define BRILHO_LEDS
+#define VOLUME_BUZZER 4096
+#define BRILHO_LEDS 10
 
 
 // Definição de uma função para inicializar o PWM no pino do buzzer
@@ -53,24 +53,6 @@ void pwm_init_buzzer(uint pin, uint slice_num)
 
 #define change_note(note) pwm_set_clkdiv(slice_num, clock_get_hz(clk_sys) / (notas[note] * top))
 
-// Definição de uma função para emitir um beep com duração especificada
-void beep(uint pin, uint duration_ms)
-{
-    // Obter o slice do PWM associado ao pino
-    uint slice_num = pwm_gpio_to_slice_num(pin);
-
-    // Configurar o duty cycle para 50% (ativo)
-    pwm_set_gpio_level(pin, 2048);
-
-    // Temporização
-    sleep_ms(duration_ms);
-
-    // Desativar o sinal PWM (duty cycle 0)
-    pwm_set_gpio_level(pin, 0);
-
-    // Pausa entre os beeps
-    sleep_ms(100); // Pausa de 100ms
-}
 
 // funcao para gravar os tempos de cada nota (e o espaço entre elas também)
 void gravar(int *tempos_off, int *tempos_on, uint slice_num)
@@ -126,28 +108,29 @@ const uint heart2[] = {
     10, 14,
     15, 17, 19,
     21, 23};
-bool state = true;
-bool dim_callback(__unused struct repeating_timer *t)
+
+bool coracao_callback(__unused struct repeating_timer *t)
 {
 
-    printf("oieee");
+    static bool state = true;
+
     if (state == true)
     {
 
         for (int i = 0; i < 10; i++)
         {
-            npSetLED(heart2[i], 10, 0, 0);
+            npSetLED(heart2[i], BRILHO_LEDS, 0, 0);
         }
         npWrite();
         state = false;
-        printf("ligando");
+
     }
     else
     {
         npClear();
         npWrite();
         state = true;
-        printf("desligandooo");
+
     }
 
     return true;
@@ -164,7 +147,7 @@ int main()
 
     // inicializando piscada do led
     struct repeating_timer timer;
-    add_repeating_timer_ms(500, dim_callback, NULL, &timer);
+    add_repeating_timer_ms(500, coracao_callback, NULL, &timer);
 
 
     // Inicialização do i2c
