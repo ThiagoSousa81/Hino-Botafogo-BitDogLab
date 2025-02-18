@@ -6,6 +6,7 @@
 // dependencias comuns
 
 // dependencias buzzer
+#include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/pwm.h"
 #include "hardware/clocks.h"
@@ -22,6 +23,7 @@
 #include "inc/neopixel.h"
 // Mapeando hardware
 #define BUZZER_PIN 21
+#define BUZZER_PIN_B 10
 #define BUTTON_A_PIN 6
 
 const uint I2C_SDA = 14;
@@ -179,6 +181,9 @@ int main()
     uint slice_num = pwm_gpio_to_slice_num(BUZZER_PIN);
     pwm_init_buzzer(BUZZER_PIN, slice_num);
 
+    uint slice_num_b = pwm_gpio_to_slice_num(BUZZER_PIN_B);
+    pwm_init_buzzer(BUZZER_PIN_B, slice_num_b);
+
     // configurando botao
     //*
     gpio_init(BUTTON_A_PIN);
@@ -197,13 +202,16 @@ int main()
     for (int i = 0; i < 74; i++)
     {
         pwm_set_gpio_level(BUZZER_PIN, VOLUME_BUZZER);
+        pwm_set_gpio_level(BUZZER_PIN_B, VOLUME_BUZZER);
         change_note(musica[i]);
         sleep_us(tempos_on[i]);
 
         pwm_set_gpio_level(BUZZER_PIN, 0);
+        pwm_set_gpio_level(BUZZER_PIN_B, 0);
         sleep_us(tempos_off[i]);
     }
     pwm_set_gpio_level(BUZZER_PIN, 0);
+    pwm_set_gpio_level(BUZZER_PIN_B, 0);
 
     while (true)
         ;
